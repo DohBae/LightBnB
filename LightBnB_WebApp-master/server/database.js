@@ -25,7 +25,6 @@ const getUserWithEmail = function(email) {
     WHERE email = $1
     `, [email])
     .then((res) => {
-      console.log('USER WITH EMAIL: ', res.rows[0])
       return res.rows[0];
     })
     .catch((err) => {
@@ -46,7 +45,6 @@ const getUserWithId = function(id) {
   WHERE id = $1
   `, [id])
   .then((res) => {
-    // console.log('USER WITH ID: ', res.rows[0])
     return res.rows[0];
   })
   .catch((err) => {
@@ -55,7 +53,7 @@ const getUserWithId = function(id) {
 }
 exports.getUserWithId = getUserWithId;
 
-/*********************************************************************************************
+/**
  * Add a new user to the database.
  * @param {{name: string, password: string, email: string}} user
  * @return {Promise<{}>} A promise to the user.
@@ -64,7 +62,6 @@ const addUser =  function(user) {
   return pool
   .query(`INSERT INTO users(name, password, email) VALUES($1, $2, $3) RETURNING *`, [user.name, user.password, user.email])
   .then((res) => {
-        console.log('ADD USER: ', res.rows[0])
         return res.rows[0];
       })
   .catch((err) => {
@@ -81,9 +78,28 @@ exports.addUser = addUser;
  * @return {Promise<[{}]>} A promise to the reservations.
  */
 const getAllReservations = function(guest_id, limit = 10) {
-  return getAllProperties(null, 2);
+return pool
+.query(`SELECT reservations.*, properties.title AS title, reservations.start_date, properties.cost_per_night, AVG(property_reviews.rating) AS average_rating
+FROM reservations
+JOIN properties ON property_id = properties.id
+JOIN property_reviews ON property_reviews.id = properties.id
+WHERE reservations.guest_id = $1
+GROUP BY reservations.id, properties.title, properties.cost_per_night
+ORDER BY start_date
+LIMIT $2;
+`, [guest_id, limit = 10])
+.then((res) => {
+  console.log("ALL RESERVATIONS: ", res.rows)
+  return res.rows;
+})
+.catch((err) => {
+console.log(err);
+})
 }
 exports.getAllReservations = getAllReservations;
+
+// old in case i break it
+// return getAllProperties(null, 2);
 
 /// Properties
 
@@ -97,7 +113,6 @@ exports.getAllReservations = getAllReservations;
   return pool
     .query(`SELECT * FROM properties LIMIT $1`, [limit])
     .then((result) => {
-      // console.log(result.rows);
       return result.rows;
     })
     .catch((err) => {
